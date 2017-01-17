@@ -9,9 +9,6 @@ const wss = new WebSocketServer({ server: server })
 app.use(express.static('static'))
 app.enable('trust proxy')
 
-
-process.env.PUBLIC_URL = 'foo'
-
 app.get('/answer/:key', (req, res) => {
 
   const input_url =
@@ -42,27 +39,57 @@ app.post('/input', bodyParser.json(), (req, res) => {
     (req.secure ? 'wss' : 'ws') + '://' +
     req.headers.host + '/server/' + req.body.dtmf
 
-  res.send([
-    {
-      'action': 'connect',
-      'endpoint': [
-        {
-          'type': 'websocket',
-          'uri': ws_url,
-          'content-type': 'audio/l16;rate=16000',
-          'headers': {}
-        }
-      ]
-    }
-  ])
+
+  if(digitMap.has(req.body.dtmf)) {
+    res.send([
+      {
+        action: 'talk',
+        text: 'connecting you'
+      },
+      {
+        'action': 'connect',
+        'endpoint': [
+          {
+            'type': 'websocket',
+            'uri': ws_url,
+            'content-type': 'audio/l16;rate=16000',
+            'headers': {}
+          }
+        ]
+      }
+    ])
+  } else {
+
+    res.send([
+      {
+        action: 'talk',
+        text: "Couldn't find a matching call, sorry"
+      }
+    ])
+
+  }
+
 })
 
 // keep track of who is talking to who
 const connections = new Map
+const digitMap = new Map
 
 // barf
-const generateDigits = () =>
-  Array.from({length: 4}, () => Math.floor(Math.random()*10))
+const generateDigits = () => {
+  for (var i = 0; i < 3; i++) {
+    const attempt =
+      Array.from({length: 4},
+        () => Math.floor(Math.random() * 10)
+      ).join('')
+
+    if(!digitMap.has(attempt)) {
+      return attempt
+    }
+  }
+  return 'nope'
+}
+
 
 wss.on('connection', ws => {
 
@@ -79,7 +106,12 @@ wss.on('connection', ws => {
       number: 'the phone number'
     }))
 
-    ws.digits = digits.join('')
+    // ws.digits = digits.join('')
+    digitMap.set(digits, ws)
+
+    ws.on('close', () => {
+      digitMap.delete(digits)
+    })
 
   } else
 
@@ -87,13 +119,13 @@ wss.on('connection', ws => {
 
     const digits = url.match(serverRE)[1]
 
-    wss.clients.forEach(client => {
-      if(client.digits == digits) {
-        console.log("found client!!")
-        connections.set(ws, client)
-        connections.set(client, ws)
-      }
-    })
+    const client = digitMap.get(digits)
+    if(client) {
+      console.log("found client!!")
+      connections.set(ws, client)
+      connections.set(client, ws)
+    }
+
 
   }
 
@@ -105,7 +137,7 @@ wss.on('connection', ws => {
     if(other && other.readyState == ws.OPEN) {
       other.send(data)
 
-      console.log('proxying> ', ws.upgradeReq.url, other.upgradeReq.url)
+      console.log('proxy: ', ws.upgradeReq.url, '  ---->  ', other.upgradeReq.url)
     }
 
   })
