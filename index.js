@@ -75,17 +75,12 @@ app.post('/input', bodyParser.json(), (req, res) => {
 const connections = new Map
 const digitMap = new Map
 
-// barf
+
 const generateDigits = () => {
   for (var i = 0; i < 3; i++) {
-    const attempt =
-      Array.from({length: 4},
-        () => Math.floor(Math.random() * 10)
-      ).join('')
+    const attempt = Math.random().toString().substr(2,4)
 
-    if(!digitMap.has(attempt)) {
-      return attempt
-    }
+    if(!digitMap.has(attempt)) return attempt
   }
   return 'nope'
 }
