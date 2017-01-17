@@ -68,7 +68,7 @@ app.post('/input', bodyParser.json(), (req, res) => {
     res.send([
       {
         action: 'talk',
-        text: "Couldn't find a matching call, sorry"
+        text: 'Couldn\'t find a matching call, sorry'
       }
     ])
 
@@ -121,7 +121,7 @@ wss.on('connection', ws => {
 
     const client = digitMap.get(digits)
     if(client) {
-      console.log("found client!!")
+      console.log('found client!!')
       connections.set(ws, client)
       connections.set(client, ws)
     }
@@ -143,7 +143,7 @@ wss.on('connection', ws => {
   })
 
   ws.on('close', () => {
-    console.log("closing")
+    console.log('closing')
     connections.delete(ws)
   })
 
