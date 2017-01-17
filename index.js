@@ -13,99 +13,66 @@ app.enable('trust proxy')
 process.env.PUBLIC_URL = 'foo'
 
 app.get('/answer/:key', (req, res) => {
-  const host = req.headers.host
-  const secure = req.secure
 
-  // const ws_url = (secure ? 'https' : 'http') + '://' + host + '/server/'
-  const input_url = (secure ? 'https' : 'http') + '://' + host + '/input'
-
-  console.log(req.secure)
-
-  console.log(req.headers.host)
-
-  const ws_url = process.env.PUBLIC_URL.replace(/^http/, 'ws') + '/socket'
-  const event_url = host + '/event'
-
-  console.log('directing call to ' + ws_url)
+  const input_url =
+    (req.secure ? 'https' : 'http') + '://' +
+    req.headers.host + '/input'
 
   res.send([
     {
       action: 'talk',
-      voiceName: 'Celine',
-      text: 'Enter your extension'
+      text: 'Enter that code on your screen now'
     },
     {
-      'action': 'input',
-      'eventUrl': [input_url]
+      action: 'input',
+      eventUrl: [input_url],
+      timeOut: 10,
+      maxDigits: 4
     }
-    // {
-    //   'action': 'connect',
-    //   'eventUrl': [
-    //     event_url
-    //   ],
-    //   'endpoint': [
-    //     {
-    //       'type': 'websocket',
-    //       'uri': ws_url,
-    //       'content-type': 'audio/l16;rate=16000',
-    //       'headers': {
-    //         'whatever': 'metadata_you_want'
-    //       }
-    //     }
-    //   ]
-    // }
   ])
 
 })
 
 
 app.post('/input', bodyParser.json(), (req, res) => {
-  const host = req.headers.host
-  const secure = req.secure
-
-  const ws_url = (secure ? 'https' : 'http') + '://' + host + '/server/' + req.body.dtmf
 
   console.log(`connecting ${req.body.uuid} to ${req.body.dtmf}`)
 
-  console.log(req.body)
+  const ws_url =
+    (req.secure ? 'wss' : 'ws') + '://' +
+    req.headers.host + '/server/' + req.body.dtmf
 
   res.send([
     {
       'action': 'connect',
-      // 'eventUrl': [
-      //   event_url
-      // ],
       'endpoint': [
         {
           'type': 'websocket',
           'uri': ws_url,
           'content-type': 'audio/l16;rate=16000',
-          'headers': {
-            'whatever': 'metadata_you_want'
-          }
+          'headers': {}
         }
       ]
     }
   ])
 })
 
+// keep track of who is talking to who
+const connections = new Map
 
-// const browsers = new WeakMap
-// const servers = new WeakMap
-const connections = new WeakMap
+// barf
+const generateDigits = () =>
+  Array.from({length: 4}, () => Math.floor(Math.random()*10))
 
 wss.on('connection', ws => {
 
   const url = ws.upgradeReq.url
 
-  console.log('incoming! ' + url)
-
   const serverRE = /^\/server\/(\d{4})$/
 
   if(url == '/browser') {
 
-    // blurgh
-    var digits = Array.from({length: 4}, () => Math.floor(Math.random()*10))
+    var digits = generateDigits()
 
     ws.send(JSON.stringify({
       digits,
@@ -125,29 +92,29 @@ wss.on('connection', ws => {
         console.log("found client!!")
         connections.set(ws, client)
         connections.set(client, ws)
-
-
-        ws.on('message', data => {
-          client.send(data)
-          console.log("-> nexmo ", data.length)
-        })
-
-        client.on('message', data => {
-          console.log("-> browser ", data.length)
-          ws.send(data)
-        })
-
-
       }
     })
 
-
-
-    console.log(digits)
-
-    //
-
   }
+
+
+
+  ws.on('message', data => {
+    const other = connections.get(ws)
+
+    if(other && other.readyState == ws.OPEN) {
+      other.send(data)
+
+      console.log('proxying> ', ws.upgradeReq.url, other.upgradeReq.url)
+    }
+
+  })
+
+  ws.on('close', () => {
+    console.log("closing")
+    connections.delete(ws)
+  })
+
 
 })
 
