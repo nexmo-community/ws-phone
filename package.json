@@ -10,7 +10,7 @@
     "express": "^4.14.0",
     "ws": "^1.1.1"
   },
-  "scrips": {
+  "scripts": {
     "start": "node index.js"
   }
 }
