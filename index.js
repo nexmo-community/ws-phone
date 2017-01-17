@@ -103,7 +103,7 @@ wss.on('connection', ws => {
 
     ws.send(JSON.stringify({
       digits,
-      number: 'the phone number'
+      number: '+44 7520 618 833'
     }))
 
     // ws.digits = digits.join('')
