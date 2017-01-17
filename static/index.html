@@ -3,8 +3,12 @@
   <head>
     <meta charset="utf-8">
     <title>ws-phone</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Contrail+One" rel="stylesheet">
     <style media="screen">
+      body { font-family: 'Contrail One', sans-serif}
       #status {white-space: pre}
+      canvas {max-width: 100%}
     </style>
   </head>
   <body>
@@ -44,7 +48,7 @@
           console.log(config)
           status_el.innerText = `Connected.
 Call ${config.number}
-Then enter "${config.digits}" when prompted`
+Then enter "${config.digits}" when asked`
           configured = true
 
         } else {
