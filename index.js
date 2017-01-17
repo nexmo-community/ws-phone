@@ -9,7 +9,7 @@ const wss = new WebSocketServer({ server: server })
 app.use(express.static('static'))
 app.enable('trust proxy')
 
-app.get('/answer/:key', (req, res) => {
+app.get('/answer', (req, res) => {
 
   const input_url =
     (req.secure ? 'https' : 'http') + '://' +
@@ -28,6 +28,11 @@ app.get('/answer/:key', (req, res) => {
     }
   ])
 
+})
+
+app.post('/event', bodyParser.json(), (req, res) => {
+  console.log('event>', req.body)
+  res.sendStatus(200)
 })
 
 
