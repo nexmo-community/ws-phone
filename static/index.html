@@ -7,77 +7,79 @@
     <link href="https://fonts.googleapis.com/css?family=Contrail+One" rel="stylesheet">
     <style media="screen">
       body { font-family: 'Contrail One', sans-serif}
-      #status {white-space: pre}
       canvas {max-width: 100%}
+      #ui h2 {margin:0}
     </style>
   </head>
   <body>
-    <h1>websocket phone</h1>
+    <h1>WebSocket phone</h1>
 
-    <h2 id="status">_</h2>
+    <div id="ui"></div>
 
     <canvas id="c" width="600" height="300"></canvas>
 
     <script>
-      var status_el = document.querySelector('#status')
+      // Helper for dispaying instructions & status to the user
+      function ui(lines) {
+        var el = document.querySelector('#ui')
+        el.innerHTML = ''
+
+        function append(text) {
+          var h = document.createElement('h2')
+          h.textContent = text
+          el.appendChild(h)
+        }
+
+        [].concat(lines).forEach(append)
+      }
+
       var ctx = c.getContext('2d')
 
       var ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/browser')
       ws.binaryType = 'arraybuffer'
 
-
       var AudioContext = window.AudioContext || window.webkitAudioContext
       var context = new AudioContext()
 
+      ws.onclose = ui.bind(null, 'Disconnected')
 
-      ws.onopen = function() {
-        console.log("OPEN")
-        // status_el.innerText = 'connected'
-      }
-      ws.onclose = function() {
-        console.log("CLOSED")
-        status_el.innerText = 'disconnected'
-      }
-
-      var configured = false
+      var first = true
       var time = 0
       ws.onmessage = function(event){
 
-        if(!configured) {
+        // the first message should be a ui configuration message
+        if(first) {
           var config = JSON.parse(event.data)
-          console.log(config)
-          status_el.innerText = `Connected.
-Call ${config.number}
-Then enter "${config.digits}" when asked`
-          configured = true
+          ui([
+            `Call ${config.inbound_number}`,
+            `Enter ${config.digits} when prompted`
+          ])
+          
+          return first = false
+        }
 
-        } else {
-          // console.log("message", event)
 
-          time = Math.max(context.currentTime, time)
+        time = Math.max(context.currentTime, time)
 
-          var input = new Int16Array(event.data)
+        var input = new Int16Array(event.data)
 
-          if(input.length) {
+        if(input.length) {
 
-            var buffer = context.createBuffer(1, input.length, 16000)
-            var data = buffer.getChannelData(0)
-            for (var i = 0; i < data.length; i++) {
-              data[i] = input[i] / 32767
-              // data[i] = Math.random()
-            }
+          var buffer = context.createBuffer(1, input.length, 16000)
+          var data = buffer.getChannelData(0)
+          for (var i = 0; i < data.length; i++) {
+            data[i] = input[i] / 32767
+          }
 
-            var source = context.createBufferSource()
-            source.buffer = buffer
-            source.connect(context.destination)
-            source.start(time += buffer.duration)
+          var source = context.createBufferSource()
+          source.buffer = buffer
+          source.connect(context.destination)
+          source.start(time += buffer.duration)
 
-            ctx.fillStyle = '#f08'
-            ctx.clearRect(300,0,300,300)
-            for (var i = 0; i < 300; i++) {
-              ctx.fillRect(300 + i, 150, 1, 300*input[i]/32767)
-            }
-
+          ctx.fillStyle = '#f08'
+          ctx.clearRect(300,0,300,300)
+          for (var i = 0; i < 300; i++) {
+            ctx.fillRect(300 + i, 150, 1, 300*input[i]/32767)
           }
 
         }
