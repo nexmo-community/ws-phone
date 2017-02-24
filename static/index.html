@@ -87,18 +87,15 @@
       }
 
 
-      //
       navigator.mediaDevices.getUserMedia({
         video: false,
         audio: true
       })
       .then( stream => {
 
-
         var source = context.createMediaStreamSource(stream)
 
         var processor = context.createScriptProcessor(1024, 1, 1)
-
 
         var downsampled = new Int16Array(2048)
         var downsample_offset = 0
@@ -126,7 +123,7 @@
           }
         }
 
-        var ratio = context.sampleRate / 16000
+        var sampleRatio = context.sampleRate / 16000
 
         processor.onaudioprocess = (audioProcessingEvent) => {
 
@@ -136,28 +133,23 @@
           var inputData = inputBuffer.getChannelData(0)
           var outputData = outputBuffer.getChannelData(0)
 
-          // sketchy downsample
-          for (var i = 0; i < inputData.length; i += ratio) {
+
+          for (var i = 0; i < inputData.length; i += sampleRatio) {
             var sidx = Math.floor(i)
-            var tidx = Math.floor(i/ratio)
+            var tidx = Math.floor(i/sampleRatio)
             downsampled[downsample_offset + tidx] = inputData[sidx] * 32767
 
           }
 
-          downsample_offset += ~~(inputData.length/ratio)
+          downsample_offset += ~~(inputData.length/sampleRatio)
 
           if(downsample_offset > 320) {
             process_samples()
           }
 
-          // console.log(downsample_offset)
-
           for (var sample = 0; sample < inputBuffer.length; sample++) {
-            // make output equal to the same as the input
-            outputData[sample] = inputData[sample];
-
-            // add noise to each output sample
-            outputData[sample] = 0;// += ((Math.random() * 2) - 1) * 0.2;
+            // Silence the output
+            outputData[sample] = 0
           }
         }
 
