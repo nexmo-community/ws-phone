@@ -5,6 +5,9 @@ const bodyParser = require('body-parser')
 const app = express()
 const wss = new WebSocketServer({ server: server })
 
+// Inbound number for display
+const inbound_number = '+44 7520 618 833'
+
 
 app.use(express.static('static'))
 app.enable('trust proxy')
@@ -45,7 +48,7 @@ app.post('/input', bodyParser.json(), (req, res) => {
     req.headers.host + '/server/' + req.body.dtmf
 
 
-  if(digitMap.has(req.body.dtmf)) {
+  if(pins.has(req.body.dtmf)) {
     res.send([
       {
         action: 'talk',
@@ -78,14 +81,14 @@ app.post('/input', bodyParser.json(), (req, res) => {
 
 // keep track of who is talking to who
 const connections = new Map
-const digitMap = new Map
+const pins = new Map
 
 
-const generateDigits = () => {
+const generatePIN = () => {
   for (var i = 0; i < 3; i++) {
     const attempt = Math.random().toString().substr(2,4)
 
-    if(!digitMap.has(attempt)) return attempt
+    if(!pins.has(attempt)) return attempt
   }
   return 'nope'
 }
@@ -99,18 +102,14 @@ wss.on('connection', ws => {
 
   if(url == '/browser') {
 
-    var digits = generateDigits()
+    var pin = generatePIN()
 
-    ws.send(JSON.stringify({
-      digits,
-      number: '+44 7520 618 833'
-    }))
+    ws.send(JSON.stringify({ pin, inbound_number }))
 
-    // ws.digits = digits.join('')
-    digitMap.set(digits, ws)
+    pins.set(pin, ws)
 
     ws.on('close', () => {
-      digitMap.delete(digits)
+      pins.delete(pin)
     })
 
   } else
@@ -119,7 +118,7 @@ wss.on('connection', ws => {
 
     const digits = url.match(serverRE)[1]
 
-    const client = digitMap.get(digits)
+    const client = pins.get(digits)
     if(client) {
       console.log('found client!!')
       connections.set(ws, client)
