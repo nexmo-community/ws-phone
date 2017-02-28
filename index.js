@@ -6,7 +6,7 @@ const app = express()
 const wss = new WebSocketServer({ server: server })
 
 // Inbound number for display
-const inbound_number = '+44 7520 618 833'
+const inbound_number = process.env.INBOUND_NUMBER || '-'
 
 
 app.use(express.static('static'))
