@@ -1,6 +1,6 @@
 # ws-phone
 
-Receive Nexmo voice calls in your browser
+Receive voice calls in your browser.
 
 ![](static/screenshot.png)
 
@@ -11,7 +11,7 @@ _note: this requires [getUserMedia/Stream API](http://caniuse.com/#feat=stream) 
 ### Requirements
 
 * [node](https://nodejs.org/en/) & [yarn](https://yarnpkg.com)
-* a publicly available host to run your application
+* a publicly available host to run your application (heroku works pretty well)
 * a Nexmo number and associated app with the following endpoints:
   * `answer`: https://YOUR_URL/answer
   * `event`: https://YOUR_URL/event
@@ -27,11 +27,11 @@ export INBOUND_NUMBER='+44 7575 123 456'
 node app.js
 ```
 
-Visit http://your-url:3000 to see your app.
+Visit `http://your-url:3000` to see your app.
 
 ## How this works
 
-This makes use of the Nexmo feature of connecting a voice call with a [WebSocket endpoint](https://docs.nexmo.com/voice/voice-api/websockets).  The node server listens out for incoming websocket connections and proxies them on to the relevant browser session.
+This makes use of a Nexmo feature of connecting a voice call to a [WebSocket endpoint](https://docs.nexmo.com/voice/voice-api/websockets).  The node server listens out for incoming websocket connections and proxies them on to the relevant browser session.
 
 Messages contain raw audio data at 16k split into 0.2s chunks.
 
